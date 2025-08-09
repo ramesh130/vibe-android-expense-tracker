@@ -46,19 +46,63 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.PI
-
-// Expense data model
-data class Expense(val description: String, val amount: Double, val category: String)
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.expensetracker.data.Expense
+import com.example.expensetracker.data.ExpenseDatabase
+import com.example.expensetracker.data.ExpenseRepository
+import kotlinx.coroutines.flow.Flow
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        val database = ExpenseDatabase.getDatabase(applicationContext)
+        val repository = ExpenseRepository(database.expenseDao())
+        
         setContent {
             ExpenseTrackerTheme {
-                ExpenseTrackerApp()
+                ExpenseTrackerApp(repository)
             }
         }
+    }
+}
+
+class ExpenseViewModel(private val repository: ExpenseRepository) : ViewModel() {
+    
+    val expenses: Flow<List<Expense>> = repository.allExpenses
+    val totalAmount: Flow<Double?> = repository.totalAmount
+    
+    fun addExpense(description: String, amount: Double, category: String) {
+        viewModelScope.launch {
+            val expense = Expense(
+                description = description,
+                amount = amount,
+                category = category
+            )
+            repository.insertExpense(expense)
+        }
+    }
+    
+    fun deleteExpense(expense: Expense) {
+        viewModelScope.launch {
+            repository.deleteExpense(expense)
+        }
+    }
+}
+
+class ExpenseViewModelFactory(private val repository: ExpenseRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ExpenseViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return ExpenseViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
 
@@ -183,14 +227,19 @@ fun SpendingChart(expenses: List<Expense>) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ExpenseTrackerApp() {
+fun ExpenseTrackerApp(repository: ExpenseRepository) {
     val categories = listOf("Groceries", "Entertainment", "Eat Out", "Take Out", "Transport", "Utilities", "Other")
-    var expenses by remember { mutableStateOf(listOf<Expense>()) }
     var description by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     var selectedCategory by remember { mutableStateOf(categories[0]) }
-    val total = expenses.sumOf { it.amount }
+    
+    val viewModel: ExpenseViewModel = viewModel(
+        factory = ExpenseViewModelFactory(repository)
+    )
+    
+    val expenses by viewModel.expenses.collectAsStateWithLifecycle(initialValue = emptyList())
+    val total by viewModel.totalAmount.collectAsStateWithLifecycle(initialValue = 0.0)
 
     Box(
         modifier = Modifier
@@ -236,10 +285,10 @@ fun ExpenseTrackerApp() {
                             color = Color(0xFFa8a8a8)
                         )
                         Text(
-                            text = "$${"%.2f".format(total)}",
+                            text = "$${"%.2f".format(total ?: 0.0)}",
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (total >= 0) Color(0xFF4ade80) else Color(0xFFf87171)
+                            color = if ((total ?: 0.0) >= 0.0) Color(0xFF4ade80) else Color(0xFFf87171)
                         )
                     }
                 }
@@ -363,7 +412,7 @@ fun ExpenseTrackerApp() {
                             onClick = {
                                 val amt = amount.toDoubleOrNull()
                                 if (!description.isBlank() && amt != null && selectedCategory.isNotBlank()) {
-                                    expenses = expenses + Expense(description, amt, selectedCategory)
+                                    viewModel.addExpense(description, amt, selectedCategory)
                                     description = ""
                                     amount = ""
                                     selectedCategory = categories[0]
@@ -396,7 +445,7 @@ fun ExpenseTrackerApp() {
 
             // Transactions List
             if (expenses.isNotEmpty()) {
-                items(expenses.reversed()) { expense ->
+                items(expenses) { expense ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

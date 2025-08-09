@@ -285,10 +285,10 @@ fun ExpenseTrackerApp(repository: ExpenseRepository) {
                             color = Color(0xFFa8a8a8)
                         )
                         Text(
-                            text = "$${"%.2f".format(total)}",
+                            text = "$${"%.2f".format(total ?: 0.0)}",
                             fontSize = 32.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (total >= 0) Color(0xFF4ade80) else Color(0xFFf87171)
+                            color = if ((total ?: 0.0) >= 0.0) Color(0xFF4ade80) else Color(0xFFf87171)
                         )
                     }
                 }

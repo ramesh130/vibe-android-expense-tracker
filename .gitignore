@@ -1,15 +1,67 @@
+# Android/IDE defaults
 *.iml
 .gradle
 /local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+/.idea/
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/gradle.xml
+.idea/**/dictionaries
+.idea/**/libraries
+.idea/**/caches
+.idea/**/assetWizardSettings.xml
+
+# OS
 .DS_Store
-/build
-/captures
+Thumbs.db
+
+# Gradle
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android build/cache
+**/captures/
 .externalNativeBuild
 .cxx
 local.properties
+
+# Local configuration and signing keys
+keystore.properties
+*.keystore
+*.jks
+
+# Android packages/archives
+*.apk
+*.aar
+*.aab
+*.ap_
+*.aapt_*
+
+# Logs
+*.log
+
+# Kotlin/Java artifacts
+*.class
+.kotlinc/
+.ktlint-cache/
+
+# Fastlane outputs
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# Lint/analysis outputs
+*/lint/intermediates/
+*/lint/generated/
+*/lint/outputs/
+*/lint/tmp/
+
+# Navigation Safe Args generated sources
+*/build/generated/source/navigation-args/
+
+# Optional: Firebase config (uncomment if you do not commit it)
+# app/google-services.json
+# */google-services.json
